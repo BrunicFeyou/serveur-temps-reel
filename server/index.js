@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const nanoid = (...args) => import('nanoid').then(mod => mod.nanoid(...args));
 
 const app = express();
 const server = http.createServer(app);
@@ -17,46 +18,51 @@ const io = new Server(server, {
   }
 });
 
-const waitingPlayers = [];
+const games = {}; // Store active game rooms and players
 
 io.on('connection', (socket) => {
-  console.log('New player connected:', socket.id);
+  console.log('Client connected:', socket.id);
 
-  // Add new player to waiting queue
-  waitingPlayers.push(socket);
+  // Log all events received from this socket
+  socket.onAny((event, ...args) => {
+    console.log(`[${socket.id}] Event received:`, event, args);
+  });
 
-  // If there are at least 2 players waiting, pair them
-  if (waitingPlayers.length >= 2) {
-    const player1 = waitingPlayers.shift();
-    const player2 = waitingPlayers.shift();
+  // Player 1 creates a game
+  socket.on('create-game', async () => {
+    const roomCode = await nanoid(6); // Generates a short unique code like "k3l9Xz"
+    games[roomCode] = [socket.id]; // Add creator to room
+    socket.join(roomCode);
+    socket.emit('game-created', roomCode);
+    console.log(`Game created with code: ${roomCode}`);
+  });
 
-    // Create a unique room for the pair
-    const room = `room-${player1.id}-${player2.id}`;
+  // Player 2 joins a game by code
+  socket.on('join-game', (roomCode) => {
+    const room = games[roomCode];
 
-    // Join both players to the room
-    player1.join(room);
-    player2.join(room);
+    if (room && room.length === 1) {
+      games[roomCode].push(socket.id);
+      socket.join(roomCode);
 
-    // Notify players the game can start
-    io.to(room).emit('game-start', { room });
+      // Notify both players
+      io.to(roomCode).emit('game-start', { roomCode });
+      console.log(`Player ${socket.id} joined room: ${roomCode}`);
+    } else {
+      socket.emit('error-message', 'Invalid or full room code');
+    }
+  });
 
-    // Setup listeners for moves within that room
-    player1.on('play', (move) => {
-      socket.to(room).emit('opponent-played', move);
-    });
-    player2.on('play', (move) => {
-      socket.to(room).emit('opponent-played', move);
-    });
-  }
+  // Player sends a move
+  socket.on('play', ({ roomCode, move }) => {
+    socket.to(roomCode).emit('opponent-played', move);
+  });
 
   socket.on('disconnect', () => {
-    console.log('Player disconnected:', socket.id);
-    // Remove disconnected player from waiting queue if still there
-    const index = waitingPlayers.indexOf(socket);
-    if (index !== -1) waitingPlayers.splice(index, 1);
+    console.log('Client disconnected:', socket.id);
+    // Optional: clean up game state if you want
   });
 });
-
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
