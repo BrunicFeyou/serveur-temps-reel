@@ -1,19 +1,3 @@
-<template>
-  <div>
-    <h2>Choose your move:</h2>
-    <button @click="play('rock')">🪨 Rock</button>
-    <button @click="play('paper')">📄 Paper</button>
-    <button @click="play('scissors')">✂️ Scissors</button>
-
-    <p v-if="waitingForOpponent">Waiting for opponent...</p>
-
-    <p v-if="result">
-      You played: {{ playerMove }} <br />
-      Opponent played: {{ opponentMove }} <br />
-      Result: <strong>{{ resultText }}</strong>
-    </p>
-  </div>
-</template>
 
 <script>
 import { socket } from '../socket';
@@ -65,3 +49,20 @@ export default {
   }
 };
 </script>
+
+<template>
+  <div>
+    <h2>Choose your move:</h2>
+    <button @click="play('rock')">🪨 Rock</button>
+    <button @click="play('paper')">📄 Paper</button>
+    <button @click="play('scissors')">✂️ Scissors</button>
+
+    <p v-if="waitingForOpponent">Waiting for opponent...</p>
+
+    <p v-if="result">
+      You played: {{ playerMove }} <br />
+      Opponent played: {{ opponentMove }} <br />
+      Result: <strong>{{ resultText }}</strong>
+    </p>
+  </div>
+</template>

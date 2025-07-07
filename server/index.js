@@ -6,15 +6,14 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Enable CORS to allow your frontend domain to connect
-app.use(cors({
-  origin: '*', // Change '*' to your frontend URL in production for security
-}));
+const FRONTEND_URL = process.env.FRONTEND_URL || '*';
+
+app.use(cors({ origin: FRONTEND_URL }));
 
 const io = new Server(server, {
   cors: {
-    origin: '*', // Same here: change to your frontend URL in production
-    methods: ['GET', 'POST'],
+    origin: FRONTEND_URL,
+    methods: ['GET', 'POST']
   }
 });
 
