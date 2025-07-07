@@ -32,6 +32,9 @@ io.on('connection', (socket) => {
   socket.on('create-game', async () => {
     const roomCode = await nanoid(6); // Generates a short unique code like "k3l9Xz"
     games[roomCode] = [socket.id]; // Add creator to room
+    // Initialize scores and moves
+    games[roomCode].scores = { [socket.id]: 0 };
+    games[roomCode].moves = {};
     socket.join(roomCode);
     socket.emit('game-created', roomCode);
     console.log(`Game created with code: ${roomCode}`);
@@ -43,6 +46,8 @@ io.on('connection', (socket) => {
 
     if (room && room.length === 1) {
       games[roomCode].push(socket.id);
+      // Initialize score for second player
+      games[roomCode].scores[socket.id] = 0;
       socket.join(roomCode);
 
       // Notify both players
@@ -55,7 +60,52 @@ io.on('connection', (socket) => {
 
   // Player sends a move
   socket.on('play', ({ roomCode, move }) => {
-    socket.to(roomCode).emit('opponent-played', move);
+    if (!games[roomCode] || !Array.isArray(games[roomCode])) return;
+    // Attach moves to the game object
+    if (!games[roomCode].moves) games[roomCode].moves = {};
+    games[roomCode].moves[socket.id] = move;
+
+    // If both players have played
+    const players = games[roomCode].slice(0, 2); // Only first two are players
+    if (
+      players.length === 2 &&
+      games[roomCode].moves[players[0]] &&
+      games[roomCode].moves[players[1]]
+    ) {
+      const move1 = games[roomCode].moves[players[0]];
+      const move2 = games[roomCode].moves[players[1]];
+      // Determine winner
+      let winner = null;
+      if (move1 !== move2) {
+        if (
+          (move1 === 'rock' && move2 === 'scissors') ||
+          (move1 === 'scissors' && move2 === 'paper') ||
+          (move1 === 'paper' && move2 === 'rock')
+        ) {
+          winner = players[0];
+        } else {
+          winner = players[1];
+        }
+      }
+      // Update scores
+      if (winner) {
+        games[roomCode].scores[winner] += 1;
+      }
+      // Send each player the opponent's move and scores
+      players.forEach((playerId, idx) => {
+        const opponentId = players[1 - idx];
+        io.to(playerId).emit('opponent-played', {
+          move: games[roomCode].moves[opponentId],
+          scores: {
+            you: games[roomCode].scores[playerId],
+            opponent: games[roomCode].scores[opponentId]
+          },
+          winner: winner === null ? 'draw' : (winner === playerId ? 'you' : 'opponent')
+        });
+      });
+      // Reset moves for next round
+      games[roomCode].moves = {};
+    }
   });
 
   socket.on('disconnect', () => {
