@@ -27,7 +27,7 @@ export default {
       this.opponentMove = move;
     });
     socket.on('result', ({ p1Move, p2Move, winner }) => {
-      this.playerMove = p1Move; // assuming current player is player1
+      this.playerMove = p1Move; 
       this.opponentMove = p2Move;
       if (winner === 'draw') {
         this.result = 'draw';
