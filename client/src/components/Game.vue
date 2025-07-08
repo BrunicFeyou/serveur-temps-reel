@@ -1,49 +1,78 @@
 <template>
   <div class="game">
+    <!-- Écran d'accueil -->
     <div class="start-component" v-if="!gameStarted">
       <h2>Bienvenue dans ce jeu interactif !</h2>
-      <h6>Réaliser en Vue + WebSocket.io</h6>
+      <h6>Réalisé en Vue + WebSocket.io</h6>
       <div class="join-section">
         <input v-model="joinCode" placeholder="Enter Game Code" />
         <button class="btn-join" @click="joinGame">Rejoindre la partie</button>
       </div>
       <button class="btn-start" @click="createGame">Lancez une partie</button>
-      <p v-if="roomCode">Partagez ce code avec un ami: <strong>{{ roomCode }}</strong></p>
+      <p v-if="roomCode">Partagez ce code avec un ami : <strong>{{ roomCode }}</strong></p>
       <p v-if="error" class="error">{{ error }}</p>
     </div>
-    <div class="party-section" v-else>
-      <div class="scoreboard">
-        <div  class="score">
-          <span>Votre score <strong class="all score1">{{ scores.you }}</strong></span>
-          <div class="profil-score"></div>
-        </div>
-        <div class="score">
-          <span>Score adverse <strong class="all score2">{{ scores.opponent }}</strong></span>
-          <div class="profil-score"></div>
-        </div>
+
+    <!-- Choix du mode ou partie en cours -->
+    <div v-else>
+      <!-- Choix du mode -->
+      <div v-if="!gameMode" class="mode-selection">
+        <h3>Choisissez votre méthode de jeu :</h3>
+        <button class="btn-start" @click="gameMode = 'pad'">🎮 Jouer avec le pad</button>
+        <button class="btn-start" @click="gameMode = 'camera'">📷 Jouer avec la caméra</button>
       </div>
 
-      <h3 class="replayMessage">{{replayMessage}}</h3>
-      <div class="actions">
-        <button class="button_action" @click="play('rock')">🪨 Pierre</button>
-        <button class="button_action" @click="play('paper')">📄 Feuille</button>
-        <button class="button_action" @click="play('scissors')">✂️ Ciseaux</button>
-      </div>
-      <button @click="startCamera">📷 Jouer avec la caméra</button>
-      <div v-if="showCamera" class="camera-section">
-        <video ref="video" autoplay playsinline width="224" height="224"></video>
-        <button @click="predictMove">Enregistrer</button>
-        <button @click="stopCamera">Fermer la caméra</button>
-        <p v-if="predictedMove">Ton coup sera {{ predictedMove }}</p>
-        <button v-if="predictedMove" @click="validatePredictedMove">Validé</button>
-      </div>
-      <canvas ref="canvas" width="224" height="224" style="display:none;"></canvas>
-      <p v-if="playerMove">Tu as joué {{ playerMove }}</p>
-      <p v-if="opponentMove">Le joueur adverse a joué {{ opponentMove }}</p>
+      <!-- Partie -->
+      <div v-else class="party-section">
+        <div class="scoreboard">
+          <div class="score">
+            <span>Votre score <strong class="all score1">{{ scores.you }}</strong></span>
+            <div class="profil-score"></div>
+          </div>
+          <div class="score">
+            <span>Score adverse <strong class="all score2">{{ scores.opponent }}</strong></span>
+            <div class="profil-score"></div>
+          </div>
+        </div>
 
-      <p v-if="roundResult" class="round-result">{{ roundResult }}</p>
-      <div class="header">
-        <p class="number_room">Vous êtes entrain de jouer dans la salle <strong class="number">{{ roomCode }}</strong></p>
+        <h3 class="replayMessage">{{ replayMessage }}</h3>
+
+        <!-- Mode PAD -->
+        <div v-if="gameMode === 'pad'" class="actions">
+          <h3>Jouez à l'aide du pad</h3>
+          <button class="button_action" @click="play('rock')">🪨 Pierre</button>
+          <button class="button_action" @click="play('paper')">📄 Feuille</button>
+          <button class="button_action" @click="play('scissors')">✂️ Ciseaux</button>
+        </div>
+
+        <!-- Mode CAMÉRA -->
+        <div v-if="gameMode === 'camera'" class="actions-deux">
+          <h3>Jouez avec vos doigts</h3>
+          <button class="button_action" @click="startCamera" v-if="!showCamera">📷 Lancer la caméra</button>
+
+          <div v-if="showCamera" class="camera-section">
+            <video class="camera-on" ref="video" autoplay playsinline width="224" height="224"></video>
+            <div class="camera-actions"> 
+              <button @click="predictMove">Enregistrer</button>
+              <button @click="stopCamera">Fermer</button>
+            </div>
+            <p v-if="predictedMove">Ton coup sera {{ predictedMove }}</p>
+            <button v-if="predictedMove" @click="validatePredictedMove">Validé</button>
+          </div>
+        </div>
+
+        <!-- Commun -->
+        <canvas ref="canvas" width="224" height="224" style="display:none;"></canvas>
+        <p v-if="playerMove">Tu as joué {{ playerMove }}</p>
+        <p v-if="opponentMove">Le joueur adverse a joué {{ opponentMove }}</p>
+        <p v-if="roundResult" class="round-result">{{ roundResult }}</p>
+
+        <div class="header">
+          <p class="number_room">Vous êtes en train de jouer dans la salle <strong class="number">{{ roomCode }}</strong></p>
+        </div>
+
+        <!-- Bouton pour changer de mode -->
+        <button @click="changeMode" class="btn-start">Changer de méthode de jeu</button>
       </div>
     </div>
   </div>
@@ -67,6 +96,7 @@ export default {
       showCamera: false,
       predictedMove: '',
       playerMove: '',
+      gameMode: null // "pad" ou "camera"
     };
   },
   mounted() {
@@ -88,13 +118,12 @@ export default {
         this.replayMessage = '';
         this.opponentMove = payload.move;
         this.scores = payload.scores;
-        if (payload.winner === 'draw') {
-          this.roundResult = "Égalité !";
-        } else if (payload.winner === 'you') {
-          this.roundResult = 'Vous gagnez cette manche !';
-        } else {
-          this.roundResult = 'Votre adversaire gagne cette manche !';
-        }
+        this.roundResult = payload.winner === 'draw'
+          ? "Égalité !"
+          : payload.winner === 'you'
+          ? "Vous gagnez cette manche !"
+          : "Votre adversaire gagne cette manche !";
+
         setTimeout(() => {
           this.opponentMove = '';
           this.roundResult = '';
@@ -129,7 +158,6 @@ export default {
       this.showCamera = true;
       this.predictedMove = '';
       if (!model) {
-        // Lazy-load tfjs and the model
         const tf = await import('@tensorflow/tfjs');
         model = await tf.loadLayersModel('/model/model.json');
       }
@@ -161,14 +189,21 @@ export default {
       const maxIdx = prediction.indexOf(Math.max(...prediction));
       const move = classes[maxIdx];
       this.predictedMove = move;
-      // Do not send the move yet, wait for user to validate
     },
     validatePredictedMove() {
       if (this.predictedMove) {
-        this.play(this.predictedMove); // play() will set playerMove
+        this.play(this.predictedMove);
         this.stopCamera();
         this.predictedMove = '';
       }
+    },
+    changeMode() {
+      this.stopCamera();
+      this.gameMode = null;
+      this.predictedMove = '';
+      this.playerMove = '';
+      this.opponentMove = '';
+      this.roundResult = '';
     }
   }
 };
@@ -267,9 +302,29 @@ input {
 
 .actions{
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: 5px;
   margin-top: 20px;
+  background: #A6B8B0;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.actions-deux {
+  display: flex;
+  flex-direction: column;
+  /* flex-wrap: wrap; */
+  justify-content: center;
+  gap: 5px;
+  margin-top: 20px;
+  background: #A6B8B0;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.actions h3 {
+  width: 100%;
 }
 .header {
   margin-bottom: 20px;
@@ -320,5 +375,14 @@ input {
 
 .camera-section {
   margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; 
+  align-items: center;
+}
+
+.camera-actions{
+  display: flex;
+  padding: 30px 0 0 0;
 }
 </style>
