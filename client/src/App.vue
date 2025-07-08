@@ -10,6 +10,9 @@
 import Game from './components/Game.vue';
 
 export default {
-  components: { Game }
+  components: { Game },
+  mounted() {
+    document.title = 'Pierre Feuille Ciseaux - Jeu en ligne';
+  }
 };
 </script>
