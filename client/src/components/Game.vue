@@ -1,6 +1,5 @@
 <template>
   <div class="game">
-    <!-- Écran d'accueil -->
     <div class="start-component" v-if="!gameStarted">
       <h2>Bienvenue dans ce jeu interactif !</h2>
       <h6>Réalisé en Vue + WebSocket.io</h6>
@@ -12,17 +11,12 @@
       <p v-if="roomCode">Partagez ce code avec un ami : <strong>{{ roomCode }}</strong></p>
       <p v-if="error" class="error">{{ error }}</p>
     </div>
-
-    <!-- Choix du mode ou partie en cours -->
     <div v-else>
-      <!-- Choix du mode -->
       <div v-if="!gameMode" class="mode-selection">
         <h3>Choisissez votre méthode de jeu :</h3>
         <button class="btn-start" @click="gameMode = 'pad'">🎮 Jouer avec le pad</button>
         <button class="btn-start" @click="gameMode = 'camera'">📷 Jouer avec la caméra</button>
       </div>
-
-      <!-- Partie -->
       <div v-else class="party-section">
         <div class="scoreboard">
           <div class="score">
@@ -34,22 +28,16 @@
             <div class="profil-score"></div>
           </div>
         </div>
-
         <h3 class="replayMessage">{{ replayMessage }}</h3>
-
-        <!-- Mode PAD -->
         <div v-if="gameMode === 'pad'" class="actions">
           <h3>Jouez à l'aide du pad</h3>
           <button class="button_action" @click="play('rock')">🪨 Pierre</button>
           <button class="button_action" @click="play('paper')">📄 Feuille</button>
           <button class="button_action" @click="play('scissors')">✂️ Ciseaux</button>
         </div>
-
-        <!-- Mode CAMÉRA -->
         <div v-if="gameMode === 'camera'" class="actions-deux">
           <h3>Jouez avec vos doigts</h3>
           <button class="button_action" @click="startCamera" v-if="!showCamera">📷 Lancer la caméra</button>
-
           <div v-if="showCamera" class="camera-section">
             <video class="camera-on" ref="video" autoplay playsinline width="224" height="224"></video>
             <div class="camera-actions"> 
@@ -60,18 +48,13 @@
             <button v-if="predictedMove" @click="validatePredictedMove">Validé</button>
           </div>
         </div>
-
-        <!-- Commun -->
         <canvas ref="canvas" width="224" height="224" style="display:none;"></canvas>
         <p v-if="playerMove">Tu as joué {{ playerMove }}</p>
         <p v-if="opponentMove">Le joueur adverse a joué {{ opponentMove }}</p>
         <p v-if="roundResult" class="round-result">{{ roundResult }}</p>
-
         <div class="header">
           <p class="number_room">Vous êtes en train de jouer dans la salle <strong class="number">{{ roomCode }}</strong></p>
         </div>
-
-        <!-- Bouton pour changer de mode -->
         <button @click="changeMode" class="btn-start">Changer de méthode de jeu</button>
       </div>
     </div>
