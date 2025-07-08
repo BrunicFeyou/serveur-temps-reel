@@ -1,6 +1,7 @@
 <template>
   <div id="app">
-    <h1>Rock Paper Scissors - Vue + Socket.IO</h1>
+    <h1>Pierre 🪨 Feuille 🧻 Ciseaux ✂️ </h1>
+    
     <Game />
   </div>
 </template>
