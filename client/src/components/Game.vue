@@ -182,7 +182,7 @@ export default {
       showCamera: false,
       predictedMove: "",
       playerMove: "",
-      gameMode: "pad", // default to pad
+      gameMode: "pad",
     };
   },
   mounted() {
